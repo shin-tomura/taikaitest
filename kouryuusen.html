@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>大会のページの置き方の試し(1回目)</title>
+<style>
+  body { margin: 0; font-family: -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif; background: #f3f4f6; color: #1d1f23; line-height: 1.6; }
+  .obi { background: #e8590c; color: #fff; padding: 18px 16px; text-align: center; }
+  .obi .ookii { font-size: 44px; font-weight: bold; line-height: 1.2; }
+  main { padding: 8px 16px 24px; max-width: 640px; margin: 0 auto; }
+  .kado { background: #fff; border-radius: 10px; padding: 12px 14px; margin: 12px 0; box-shadow: 0 1px 3px rgba(0, 0, 0, .12); }
+  h2 { font-size: 17px; margin: 0 0 6px; }
+  .maru { color: #1b7f3b; font-weight: bold; }
+  .batsu { color: #c92a2a; font-weight: bold; }
+  .hosoku { color: #5c6270; font-size: 14px; }
+  button, select { font-size: 16px; padding: 8px 14px; border-radius: 8px; border: 1px solid #adb5bd; background: #fff; color: #1d1f23; }
+  code { background: #f1f3f5; padding: 2px 6px; border-radius: 4px; word-break: break-all; }
+</style>
+</head>
+<body>
+<div class="obi">
+  <div class="ookii">1回目</div>
+  <div>大会のページの置き方の試し</div>
+</div>
+<main>
+  <div class="kado">
+    <h2>開いた時刻</h2>
+    <div id="jikoku">-</div>
+    <div class="hosoku">読み込み直すたびに変わります。2回目のファイルを上げたら、上の帯が青い「2回目」に変わるかを見てください。</div>
+  </div>
+
+  <div class="kado">
+    <h2>https で開いているか</h2>
+    <div id="https">-</div>
+    <div class="hosoku">https だと、コピーのボタンがよく動きます。</div>
+  </div>
+
+  <div class="kado">
+    <h2>選んだチームを覚えるか</h2>
+    <select id="team">
+      <option value="">(選んでください)</option>
+      <option value="A">箱庭A大</option>
+      <option value="B">箱庭B大</option>
+      <option value="C">箱庭C大</option>
+    </select>
+    <div id="oboe" class="hosoku">-</div>
+    <div class="hosoku">選んでから読み込み直し、選んだチームが残っていれば○です(大会のページの「チームを選ぶ」と同じ覚え方です)。</div>
+  </div>
+
+  <div class="kado">
+    <h2>文字列のコピー</h2>
+    <div><code id="mojiretsu">EKL1-TAMESHI-0001-KOURYUUSEN</code></div>
+    <p><button id="copy">文字列をコピー</button></p>
+    <div id="copyKekka" class="hosoku">-</div>
+    <div class="hosoku">押したあと、メモなどに貼り付けて、上と同じ文字列が出れば○です。</div>
+  </div>
+</main>
+<script>
+  (function () {
+    var $ = function (id) { return document.getElementById(id); };
+    var d = new Date();
+    var p = function (n) { return (n < 10 ? "0" : "") + n; };
+    $("jikoku").textContent = d.getFullYear() + "年" + (d.getMonth() + 1) + "月" + d.getDate() + "日 " + p(d.getHours()) + ":" + p(d.getMinutes()) + ":" + p(d.getSeconds());
+
+    var https = location.protocol === "https:";
+    $("https").innerHTML = https ? '<span class="maru">○ https で開いています</span>' : '<span class="batsu">× https ではありません(' + location.protocol + ')</span>';
+
+    var KEY = "kouryuusen_tameshi_team";
+    var mei = { A: "箱庭A大", B: "箱庭B大", C: "箱庭C大" };
+    var oboeta = "";
+    try { oboeta = localStorage.getItem(KEY) || ""; } catch (e) { oboeta = "?"; }
+    if (oboeta === "?") {
+      $("oboe").innerHTML = '<span class="batsu">× このブラウザでは覚えられません</span>';
+    } else if (oboeta && mei[oboeta]) {
+      $("team").value = oboeta;
+      $("oboe").innerHTML = '<span class="maru">○ 前に選んだ「' + mei[oboeta] + '」を覚えていました</span>';
+    } else {
+      $("oboe").textContent = "まだ選んでいません。";
+    }
+    $("team").addEventListener("change", function () {
+      try {
+        localStorage.setItem(KEY, this.value);
+        $("oboe").textContent = this.value ? "覚えました。読み込み直して確かめてください。" : "選んでいません。";
+      } catch (e) {
+        $("oboe").innerHTML = '<span class="batsu">× このブラウザでは覚えられません</span>';
+      }
+    });
+
+    var moji = $("mojiretsu").textContent;
+    var dekita = function () { $("copyKekka").innerHTML = '<span class="maru">○ コピーしました</span>'; };
+    var dame = function () { $("copyKekka").innerHTML = '<span class="batsu">× コピーできませんでした</span>'; };
+    var furui = function () {
+      var t = document.createElement("textarea");
+      t.value = moji;
+      t.setAttribute("readonly", "");
+      t.style.position = "fixed";
+      t.style.top = "-1000px";
+      document.body.appendChild(t);
+      t.select();
+      t.setSelectionRange(0, moji.length);
+      var ok = false;
+      try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
+      document.body.removeChild(t);
+      if (ok) dekita(); else dame();
+    };
+    $("copy").addEventListener("click", function () {
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(moji).then(dekita, furui);
+      } else {
+        furui();
+      }
+    });
+  })();
+</script>
+</body>
+</html>
